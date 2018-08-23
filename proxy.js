@@ -1,8 +1,41 @@
 const http = require('http');
 const net = require('net');
 const url = require('url');
-const PORT = 1337;
+
+const PORT = process.env.PORT || 1337;
+const HOST = process.env.HOST || '127.0.0.1';
+
 const MY_IP = '0.0.0.0';
+
+// async function findMyIP() {
+//     return new Promise((resolve, reject) => {
+//         const req = http.get('http://myip.ipip.net');
+//         req.on('response', (res) => {
+//             const { statusCode } = res;
+
+//             let rawData = '';
+//             if (statusCode === 200) {
+//                 res.setEncoding('utf8');
+//                 res.on('data', (chunk) => { rawData += chunk; });
+
+//                 res.on('end', () => {
+//                     const match = rawData.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+//                     if (match) {
+//                         resolve(match[1]);
+//                     } else {
+//                         reject(new Error(`无法解析IP。${rawData}`));
+//                     }
+//                 })
+//             } else {
+//                 res.resume();
+//                 reject(new Error(`请求失败。状态码: ${statusCode}`));
+//             }
+//         });
+
+//         req.on('error', reject);
+//     });
+// }
+// findMyIP().then(console.log).catch(console.error);
 
 // 创建一个 HTTP 代理服务器
 const proxy = http.createServer();
@@ -105,8 +138,8 @@ proxy.on('connect', (req, cltSocket, head) => {
 });
 
 proxy.on('listening', () => {
-    console.log(`Proxy-Server running at ${1337}`);
+    console.log(`Proxy-Server running at ${PORT}`);
 });
 
 // 代理服务器正在运行
-proxy.listen(1337, '127.0.0.1');
+proxy.listen(PORT, HOST);
