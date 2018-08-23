@@ -1,0 +1,22 @@
+{
+  "name": "http-proxy",
+  "version": "1.0.0",
+  "description": "http-proxy",
+  "main": "proxy.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tianyk/http-proxy.git"
+  },
+  "keywords": [
+    "proxy"
+  ],
+  "author": "tyk",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tianyk/http-proxy/issues"
+  },
+  "homepage": "https://github.com/tianyk/http-proxy#readme"
+}
