@@ -4,38 +4,12 @@ const url = require('url');
 
 const PORT = process.env.PORT || 1337;
 const HOST = process.env.HOST || '127.0.0.1';
-
 const MY_IP = '0.0.0.0';
 
-// async function findMyIP() {
-//     return new Promise((resolve, reject) => {
-//         const req = http.get('http://myip.ipip.net');
-//         req.on('response', (res) => {
-//             const { statusCode } = res;
+const SERVER_TIMEOUT = 2 * 60 * 1000; // 2mins
+const SEND_TIMEOUT  = 1000;
+const PROXY_TIMEOUT = 60 * 1000; // 1mins
 
-//             let rawData = '';
-//             if (statusCode === 200) {
-//                 res.setEncoding('utf8');
-//                 res.on('data', (chunk) => { rawData += chunk; });
-
-//                 res.on('end', () => {
-//                     const match = rawData.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
-//                     if (match) {
-//                         resolve(match[1]);
-//                     } else {
-//                         reject(new Error(`无法解析IP。${rawData}`));
-//                     }
-//                 })
-//             } else {
-//                 res.resume();
-//                 reject(new Error(`请求失败。状态码: ${statusCode}`));
-//             }
-//         });
-
-//         req.on('error', reject);
-//     });
-// }
-// findMyIP().then(console.log).catch(console.error);
 
 // 创建一个 HTTP 代理服务器
 const proxy = http.createServer();
@@ -52,9 +26,9 @@ proxy.on('request', (cReq, cRes) => {
         // via
         let via = headers['via'];
         if (via) {
-            via = via += ', 1.1 proxy.kekek.cc';
+            via = via += ', 1.1 proxy.kekek.cc (KEKE-Proxy)';
         } else {
-            via = '1.1 proxy.kekek.cc (Node.js-Proxy)';
+            via = '1.1 proxy.kekek.cc (KEKE-Proxy)';
         }
         headers['via'] = via;
 
@@ -66,30 +40,44 @@ proxy.on('request', (cReq, cRes) => {
             ips = MY_IP;
         }
         headers['x-forward-for'] = ips;
-
+        
         // Max-Forwards
+        
+        // 服务器响应超时
+        // cRes.setTimeout(SEND_TIMEOUT, () => {
+        //     cRes.writeHead(504, { 'content-type': 'text/plain' });
+        //     cRes.end('Send Timeout');
+        // });
 
+        // <http.ClientRequest>
         const pReq = http.request({ hostname, port, path, method, headers });
         pReq
+            .setTimeout(PROXY_TIMEOUT)
             .on('response', (pRes) => {
+                // <http.IncomingMessage>
                 console.log(`[response] [proxy] ${cUrl}`);
+
                 cRes.writeHead(pRes.statusCode, pRes.headers);
                 pRes.pipe(cRes);
             })
-            .on('abort', () => {
-                console.log(`[abort] [proxy] ${cUrl}`);
-            })
             .on('timeout', () => {
-                cRes.end();
+                // 代理请求超时
+                console.log(`[timeout] [proxy-req] ${cUrl}`);
+                pReq.abort();
+            })
+            .on('abort', () => {
+                console.log(`[abort] [proxy-req] ${cUrl}`);
             })
             .on('close', () => {
-                console.log(`[close] [proxy] ${cUrl}`);
+                console.log(`[close] [proxy-req] ${cUrl}`);
             })
             .on('error', (err) => {
-                console.log(`[error] [proxy] ${cUrl} \r\n${err.stack}`);
-                cRes.end();
+                console.log(`[error] [proxy-req] ${cUrl} \r\n${err.stack}`);
+                cRes.writeHead(500, { 'content-type': 'text/plain' });
+                cRes.end(`Proxy Error: ${err.code || err.message || err.name}`);
             });
 
+        // 请求重定向
         cReq.pipe(pReq);
 
         // 客户端中止
@@ -98,11 +86,6 @@ proxy.on('request', (cReq, cRes) => {
             // 中止代理
             pReq.abort();
         });
-
-        // TODO 客户端提前断开
-        // cRes.on('close', () => {
-        //     console.log(`[close] [client] ${cUrl}`);
-        // });
     } else {
         // http-server
         if (cUrl === '/proxy.pac') {
@@ -112,20 +95,17 @@ proxy.on('request', (cReq, cRes) => {
 // DIRECT	        不经过任何代理，直接进行连接
 // PROXY host:port	应该使用指定的代理
 // SOCKS host:port	应该使用指定的 SOCKS 服务器
-// HTTP host:port   
-// HTTPS host:port  
-// SOCKS4 host:port
-// SOCKS5 host:port
 
 var proxy = "PROXY proxy.kekek.cc:1337; DIRECT;";
 var direct = 'DIRECT;';
 function FindProxyForURL(url, host){
-    if (host === 'ccs.51talk.com') {
+    if (/\.\kekek\.cc$/.test(host)) {
         return proxy;
     } else {
         return direct;
     }
 }`;
+
             cRes.end(pac);
         } else {
             cRes.setHeader('content-type', 'text/plain');
