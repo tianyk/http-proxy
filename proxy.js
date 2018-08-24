@@ -106,7 +106,7 @@ proxy.on('request', (cReq, cRes) => {
     } else {
         // http-server
         if (cUrl === '/proxy.pac') {
-            response.setHeader('content-type', 'application/x-ns-proxy-autoconfig');
+            cRes.setHeader('content-type', 'application/x-ns-proxy-autoconfig');
             const pac = `// Proxy Auto-Configuration (PAC) file
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling/Proxy_Auto-Configuration_(PAC)_file
 // DIRECT	        不经过任何代理，直接进行连接
@@ -126,9 +126,9 @@ function FindProxyForURL(url, host){
         return direct;
     }
 }`;
-            res.end(pac);
+            cRes.end(pac);
         } else {
-            response.setHeader('content-type', 'text/plain');
+            cRes.setHeader('content-type', 'text/plain');
             cRes.end('proxy: proxy.kekek.cc\r\nport: 1337');
         }
     }
@@ -178,7 +178,7 @@ proxy.on('connect', (req, cltSocket, head) => {
 });
 
 proxy.on('listening', () => {
-    console.log(`Proxy-Server running at ${PORT}`);
+    console.log(`Proxy-Server running on http://${HOST}:${PORT}`);
 });
 
 // 代理服务器正在运行
