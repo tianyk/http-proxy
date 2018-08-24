@@ -117,7 +117,7 @@ proxy.on('request', (cReq, cRes) => {
 // SOCKS4 host:port
 // SOCKS5 host:port
 
-var proxy = "HTTP proxy.kekek.cc:1337; HTTPS proxy.kekek.cc:1337";
+var proxy = "HTTP proxy.kekek.cc:1337; HTTPS proxy.kekek.cc:1337;";
 var direct = 'DIRECT;';
 function FindProxyForURL(url, host){
     if (host === 'ccs.51talk.com') {
@@ -129,7 +129,7 @@ function FindProxyForURL(url, host){
             cRes.end(pac);
         } else {
             cRes.setHeader('content-type', 'text/plain');
-            cRes.end('proxy: proxy.kekek.cc\r\nport: 1337');
+            cRes.end('proxy: proxy.kekek.cc\r\nport: 1337\r\npac: http://proxy.kekek.cc:1337/proxy.pac');
         }
     }
 });
