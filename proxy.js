@@ -1,3 +1,4 @@
+// 2018-08-24 17:20:00
 const http = require('http');
 const net = require('net');
 const url = require('url');
@@ -128,15 +129,16 @@ proxy.on('connect', (req, cltSocket, head) => {
             'Proxy-agent: Node.js-Proxy\r\n' +
             '\r\n');
         srvSocket.write(head);
+        // 连接管道
         srvSocket.pipe(cltSocket);
         cltSocket.pipe(srvSocket);
     });
 
-    srvSocket.on('end', () => {
-        // 远程服务器断开
-        console.log(`[end] ${req.url}`);
-        cltSocket.end();
-    });
+    // srvSocket.on('end', () => {
+    //     // 远程服务器断开
+    //     console.log(`[end] ${req.url}`);
+    //     cltSocket.end();
+    // });
 
     // srvSocket.on('timeout', () => {
     //     console.log(`[timeout] ${req.url}`);
@@ -144,16 +146,16 @@ proxy.on('connect', (req, cltSocket, head) => {
     //     cltSocket.end();
     // });
 
-    srvSocket.on('close', (hasError) => {
-        // 远程服务器完全断开
-        console.log(`[close] ${req.url} ${hasError}`);
-        cltSocket.end();
-    });
+    // srvSocket.on('close', (hasError) => {
+    //     // 远程服务器完全断开
+    //     console.log(`[close] ${req.url} ${hasError}`);
+    // });
 
     srvSocket.on('error', (err) => {
         // 远程服务器报错
         console.log(`[error] ${req.url} \r\n${err.stack}`);
-        cltSocket.end();
+        const error = `Proxy Error: ${err.code || err.message || err.name}`
+        cltSocket.end(`HTTP/1.1 500 Internal Server Error\r\ncontent-type:text/plain\r\ncontent-length:${err.length}\r\n\r\n${error}`);
     });
 });
 
