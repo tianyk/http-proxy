@@ -117,7 +117,7 @@ proxy.on('request', (cReq, cRes) => {
 // SOCKS4 host:port
 // SOCKS5 host:port
 
-var proxy = "HTTP proxy.kekek.cc:1337; HTTPS proxy.kekek.cc:1337;";
+var proxy = "PROXY proxy.kekek.cc:1337; DIRECT;";
 var direct = 'DIRECT;';
 function FindProxyForURL(url, host){
     if (host === 'ccs.51talk.com') {
