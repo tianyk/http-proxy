@@ -41,57 +41,97 @@ const MY_IP = '0.0.0.0';
 const proxy = http.createServer();
 
 proxy.on('request', (cReq, cRes) => {
-    console.log(cReq.url);
+    const cUrl = cReq.url;
+    console.log(cUrl);
 
-    const { method, headers } = cReq;
-    const { hostname, port = 80, path } = url.parse(cReq.url);
+    // 代理模式
+    if (cUrl.startsWith('http')) {
+        const { method, headers } = cReq;
+        const { hostname, port = 80, path } = url.parse(cReq.url);
 
-    let via = headers['via'];
-    if (via) {
-        via = via += ', 1.1 proxy.kekek.cc';
-    } else {
-        via = '1.1 proxy.kekek.cc (Node.js-Proxy)';
-    }
-    headers['via'] = via;
+        // via
+        let via = headers['via'];
+        if (via) {
+            via = via += ', 1.1 proxy.kekek.cc';
+        } else {
+            via = '1.1 proxy.kekek.cc (Node.js-Proxy)';
+        }
+        headers['via'] = via;
 
-    let ips = headers['x-forward-for'];
-    if (ips) { ips += `, ${MY_IP}`; }
-    else { ips = MY_IP; }
-    headers['x-forward-for'] = ips;
+        // x-forward-for
+        let ips = headers['x-forward-for'];
+        if (ips) {
+            ips += `, ${MY_IP}`;
+        } else {
+            ips = MY_IP;
+        }
+        headers['x-forward-for'] = ips;
 
-    // Max-Forwards
+        // Max-Forwards
 
-    const pReq = http.request({ hostname, port, path, method, headers });
+        const pReq = http.request({ hostname, port, path, method, headers });
+        pReq
+            .on('response', (pRes) => {
+                console.log(`[response] [proxy] ${cUrl}`);
+                cRes.writeHead(pRes.statusCode, pRes.headers);
+                pRes.pipe(cRes);
+            })
+            .on('abort', () => {
+                console.log(`[abort] [proxy] ${cUrl}`);
+            })
+            .on('timeout', () => {
+                cRes.end();
+            })
+            .on('close', () => {
+                console.log(`[close] [proxy] ${cUrl}`);
+            })
+            .on('error', (err) => {
+                console.log(`[error] [proxy] ${cUrl} \r\n${err.stack}`);
+                cRes.end();
+            });
 
-    pReq.on('response', (pRes) => {
-        console.log(`[response] [proxy] ${cReq.url}`);
-        cRes.writeHead(pRes.statusCode, pRes.headers);
-        pRes.pipe(cRes);
-    })
-        .on('abort', () => {
-            console.log(`[abort] [proxy] ${cReq.url}`);
-        })
-        .on('timeout', () => {
-            cRes.end();
-        })
-        .on('close', () => {
-            console.log(`[close] [proxy] ${cReq.url}`);
-        })
-        .on('error', (err) => {
-            console.log(`[error] [proxy] ${cReq.url} \r\n${err.stack}`);
-            cRes.end();
+        cReq.pipe(pReq);
+
+        // 客户端中止
+        cReq.on('aborted', () => {
+            console.log(`[aborted] [client] ${cUrl}`);
+            // 中止代理
+            pReq.abort();
         });
 
-    cReq.pipe(pReq);
+        // TODO 客户端提前断开
+        // cRes.on('close', () => {
+        //     console.log(`[close] [client] ${cUrl}`);
+        // });
+    } else {
+        // http-server
+        if (cUrl === '/proxy.pac') {
+            response.setHeader('content-type', 'application/x-ns-proxy-autoconfig');
+            const pac = `// Proxy Auto-Configuration (PAC) file
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling/Proxy_Auto-Configuration_(PAC)_file
+// DIRECT	        不经过任何代理，直接进行连接
+// PROXY host:port	应该使用指定的代理
+// SOCKS host:port	应该使用指定的 SOCKS 服务器
+// HTTP host:port   
+// HTTPS host:port  
+// SOCKS4 host:port
+// SOCKS5 host:port
 
-    cReq.on('aborted', () => {
-        console.log(`[aborted] [client] ${cReq.url}`);
-        pReq.abort();
-    });
-
-    // cRes.on('close', () => {
-    //     console.log(`[close] [client] ${cReq.url}`);
-    // });
+var proxy = "HTTP proxy.kekek.cc:1337; HTTPS proxy.kekek.cc:1337";
+var direct = 'DIRECT;';
+function FindProxyForURL(url, host){
+    if (host === 'ccs.51talk.com') {
+        return proxy;
+    } else {
+        return direct;
+    }
+}`;
+            res.end(pac);
+        } else {
+            response.setHeader('content-type', 'text/plain');
+            cRes.end('proxy: proxy.kekek.cc\r\nport: 1337');
+        }
+    }
 });
 
 
